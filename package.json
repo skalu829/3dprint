@@ -5,11 +5,19 @@
   "scripts": {
     "serve": "vue-cli-service serve",
     "build": "vue-cli-service build",
-    "lint": "vue-cli-service lint"
+    "lint": "vue-cli-service lint",
+    "server": "node server/index.js"
   },
   "dependencies": {
+    "@mdi/js": "^7.4.47",
+    "bcryptjs": "^3.0.3",
     "core-js": "^3.8.3",
-    "vue": "^3.2.13"
+    "json-server": "^1.0.0-beta.15",
+    "jsonwebtoken": "^9.0.3",
+    "multer": "^2.1.1",
+    "three": "0.160.1",
+    "vue": "^3.2.13",
+    "vue-router": "^5.0.7"
   },
   "devDependencies": {
     "@babel/core": "^7.12.16",
