@@ -21,3 +21,25 @@ pnpm-debug.log*
 *.njsproj
 *.sln
 *.sw?
+*.iml
+identifier.sqlite
+
+# Server: 环境变量（含密钥）
+server/.env
+
+# Server: 上传文件与生成资产（体积大，不入库）
+server/uploads/
+
+# Server: SQLite 运行时文件
+server/app.db
+server/app.db-shm
+server/app.db-wal
+*.db-shm
+*.db-wal
+
+# Server: 备份与缓存
+server/index.js.bak
+__pycache__/
+
+# 打包产物
+*.zip

@@ -1,0 +1,401 @@
+{
+  "users": [
+    {
+      "id": "1780648804834",
+      "username": "skalu",
+      "password": "$2b$10$T3E8.5YiQO6PShAR0mU/YOo6Kj2JEFsTXyb2AyJFOI1Iwip7UzMXi",
+      "createdAt": "2026-06-05T08:40:04.834Z",
+      "avatarUrl": "/uploads/avatars/avatar_1780648804834.png"
+    },
+    {
+      "id": "1781400466845",
+      "username": "testuser1",
+      "password": "$2b$10$4suLeC0c4qcFjqhhpCJpe.M1ESWE.w1EIET0uEc9gkP0rmhDOkNfG",
+      "createdAt": "2026-06-14T01:27:46.845Z"
+    },
+    {
+      "id": "1781402251376",
+      "username": "test1",
+      "password": "$2b$10$ODb/v6ikiRwOW1cekH8gZuEYm/G01hllatfdDz2AVa7C0arQOpQxC",
+      "createdAt": "2026-06-14T01:57:31.376Z",
+      "avatarUrl": "/uploads/avatars/avatar_1781402251376.png",
+      "bio": "3dprint"
+    },
+    {
+      "id": "1782311651181",
+      "username": "testuser2",
+      "email": "example@163.com",
+      "password": "$2b$10$kimHej9yLIagWlxfH.rX4uPbUcfmx6J1qkjofCAefQ1yevx598dRC",
+      "bio": "",
+      "avatarUrl": "/uploads/avatars/avatar_1782311651181.png",
+      "createdAt": "2026-06-24T14:34:11.181Z"
+    }
+  ],
+  "models": [
+    {
+      "id": "1780646403456",
+      "title": "HOLLOW_KNIGHT",
+      "description": "",
+      "tags": [],
+      "fileName": "HOLLOW_KNIGHT.3mf",
+      "fileSize": 26435242,
+      "fileExt": ".3mf",
+      "filePath": "uploads/2026-06-05/1780646403272_HOLLOW_KNIGHT.3mf",
+      "fileUrl": "http://localhost:3001/uploads/2026-06-05/1780646403272_HOLLOW_KNIGHT.3mf",
+      "userId": "1780645114898",
+      "username": "skalu",
+      "downloads": 0,
+      "likes": 2,
+      "comments": 1,
+      "views": 0,
+      "createdAt": "2026-06-05T08:00:03.456Z",
+      "shares": 3
+    },
+    {
+      "id": "1781400847297",
+      "title": "手机壳",
+      "description": "111",
+      "tags": [
+        "装饰摆件"
+      ],
+      "fileName": "ParametricModelMaker_260131140455_DJRM.3mf",
+      "fileSize": 930195,
+      "fileExt": ".3mf",
+      "filePath": "uploads/2026-06-14/1781400847286_ParametricModelMaker_260131140455_DJRM.3mf",
+      "fileUrl": "http://localhost:3001/uploads/2026-06-14/1781400847286_ParametricModelMaker_260131140455_DJRM.3mf",
+      "userId": "1780648804834",
+      "username": "skalu",
+      "downloads": 0,
+      "likes": 2,
+      "comments": 1,
+      "views": 0,
+      "createdAt": "2026-06-14T01:34:07.297Z",
+      "shares": 3
+    },
+    {
+      "id": "1781401819081",
+      "title": "自然选择号（改版）",
+      "description": "前进4",
+      "tags": [
+        "玩具模型"
+      ],
+      "fileName": "èªç¶éæ©å·_3mf.3mf",
+      "fileSize": 5831430,
+      "fileExt": ".3mf",
+      "filePath": "uploads/2026-06-14/1781401819044_________________3mf.3mf",
+      "fileUrl": "http://localhost:3001/uploads/2026-06-14/1781401819044_________________3mf.3mf",
+      "userId": "1780648804834",
+      "username": "skalu",
+      "downloads": 0,
+      "likes": 1,
+      "comments": 1,
+      "views": 0,
+      "createdAt": "2026-06-14T01:50:19.081Z",
+      "shares": 2
+    },
+    {
+      "id": "1781532723650",
+      "title": "小米电视遥控器壁挂底座",
+      "description": "这个模型是为了将小米电视遥控器能挂在桌子的侧面或者墙上，固定它需要使用纳米双面胶，在非圆角的那一面使用纳米双面胶直接贴在你想贴的地方就可以啦，希望你喜欢这个模型。",
+      "tags": [],
+      "fileName": "å°ç±³çµè§é¥æ§å¨å£æåºåº§.3mf",
+      "fileSize": 317679,
+      "fileExt": ".3mf",
+      "filePath": "uploads/2026-06-15/1781532723643__________________________________.3mf",
+      "fileUrl": "http://localhost:3001/uploads/2026-06-15/1781532723643__________________________________.3mf",
+      "userId": "1781402251376",
+      "username": "test1",
+      "downloads": 0,
+      "likes": 1,
+      "comments": 0,
+      "views": 0,
+      "createdAt": "2026-06-15T14:12:03.650Z",
+      "shares": 11
+    },
+    {
+      "id": "1782050992344",
+      "title": "自然选择号",
+      "description": "暂无描述",
+      "tags": [
+        "玩具模型"
+      ],
+      "fileName": "自然选择号_3mf.3mf",
+      "fileSize": 5831430,
+      "fileExt": ".3mf",
+      "filePath": "uploads/2026-06-21/1782050992310_自然选择号_3mf.3mf",
+      "fileUrl": "http://localhost:3001/uploads/2026-06-21/1782050992310_自然选择号_3mf.3mf",
+      "userId": "1780648804834",
+      "username": "skalu",
+      "downloads": 0,
+      "likes": 0,
+      "comments": 0,
+      "views": 0,
+      "createdAt": "2026-06-21T14:09:52.344Z",
+      "shares": 1
+    },
+    {
+      "id": "1782311766072",
+      "title": "自然选择号",
+      "description": "111",
+      "tags": [
+        "玩具模型"
+      ],
+      "fileName": "自然选择号_3mf.3mf",
+      "fileSize": 5831430,
+      "fileExt": ".3mf",
+      "filePath": "uploads/2026-06-24/1782311766032_自然选择号_3mf.3mf",
+      "fileUrl": "http://localhost:3001/uploads/2026-06-24/1782311766032_自然选择号_3mf.3mf",
+      "userId": "1782311651181",
+      "username": "testuser2",
+      "downloads": 0,
+      "likes": 0,
+      "comments": 0,
+      "views": 0,
+      "createdAt": "2026-06-24T14:36:06.072Z"
+    }
+  ],
+  "favorites": [
+    {
+      "id": "1781400482422",
+      "userId": "1781400466845",
+      "modelId": "1780646403456",
+      "createdAt": "2026-06-14T01:28:02.422Z"
+    },
+    {
+      "id": "1781400724362",
+      "userId": "1780648804834",
+      "modelId": "1780646403456",
+      "createdAt": "2026-06-14T01:32:04.362Z"
+    },
+    {
+      "id": "1781401904650",
+      "userId": "1780648804834",
+      "modelId": "1781400847297",
+      "createdAt": "2026-06-14T01:51:44.650Z"
+    },
+    {
+      "id": "1781402257207",
+      "userId": "1781402251376",
+      "modelId": "1781401819081",
+      "createdAt": "2026-06-14T01:57:37.207Z"
+    },
+    {
+      "id": "1781532585953",
+      "userId": "1781402251376",
+      "modelId": "1781400847297",
+      "createdAt": "2026-06-15T14:09:45.953Z"
+    },
+    {
+      "id": "1781533963346",
+      "userId": "1781402251376",
+      "modelId": "1781532723650",
+      "createdAt": "2026-06-15T14:32:43.346Z"
+    }
+  ],
+  "shares": [
+    {
+      "id": "1781400482749",
+      "userId": "1781400466845",
+      "modelId": "1780646403456",
+      "platform": "link",
+      "createdAt": "2026-06-14T01:28:02.749Z"
+    },
+    {
+      "id": "1781400647069",
+      "userId": "1780648804834",
+      "modelId": "1780646403456",
+      "platform": "qq",
+      "createdAt": "2026-06-14T01:30:47.069Z"
+    },
+    {
+      "id": "1781400651114",
+      "userId": "1780648804834",
+      "modelId": "1780646403456",
+      "platform": "link",
+      "createdAt": "2026-06-14T01:30:51.114Z"
+    },
+    {
+      "id": "1781452059929",
+      "userId": "1780648804834",
+      "modelId": "1781400847297",
+      "platform": "qq",
+      "createdAt": "2026-06-14T15:47:39.929Z"
+    },
+    {
+      "id": "1781452061919",
+      "userId": "1780648804834",
+      "modelId": "1781400847297",
+      "platform": "link",
+      "createdAt": "2026-06-14T15:47:41.919Z"
+    },
+    {
+      "id": "1781532588179",
+      "userId": "1781402251376",
+      "modelId": "1781400847297",
+      "platform": "wechat",
+      "createdAt": "2026-06-15T14:09:48.179Z"
+    },
+    {
+      "id": "1781533130358",
+      "userId": "1781402251376",
+      "modelId": "1781532723650",
+      "platform": "wechat",
+      "createdAt": "2026-06-15T14:18:50.358Z"
+    },
+    {
+      "id": "1781533131330",
+      "userId": "1781402251376",
+      "modelId": "1781532723650",
+      "platform": "wechat",
+      "createdAt": "2026-06-15T14:18:51.330Z"
+    },
+    {
+      "id": "1781533132071",
+      "userId": "1781402251376",
+      "modelId": "1781532723650",
+      "platform": "wechat",
+      "createdAt": "2026-06-15T14:18:52.071Z"
+    },
+    {
+      "id": "1781533132864",
+      "userId": "1781402251376",
+      "modelId": "1781532723650",
+      "platform": "wechat",
+      "createdAt": "2026-06-15T14:18:52.864Z"
+    },
+    {
+      "id": "1781533133552",
+      "userId": "1781402251376",
+      "modelId": "1781532723650",
+      "platform": "wechat",
+      "createdAt": "2026-06-15T14:18:53.552Z"
+    },
+    {
+      "id": "1781533134318",
+      "userId": "1781402251376",
+      "modelId": "1781532723650",
+      "platform": "qq",
+      "createdAt": "2026-06-15T14:18:54.318Z"
+    },
+    {
+      "id": "1781533135138",
+      "userId": "1781402251376",
+      "modelId": "1781532723650",
+      "platform": "qq",
+      "createdAt": "2026-06-15T14:18:55.138Z"
+    },
+    {
+      "id": "1781533136036",
+      "userId": "1781402251376",
+      "modelId": "1781532723650",
+      "platform": "qq",
+      "createdAt": "2026-06-15T14:18:56.036Z"
+    },
+    {
+      "id": "1781533138640",
+      "userId": "1781402251376",
+      "modelId": "1781532723650",
+      "platform": "qq",
+      "createdAt": "2026-06-15T14:18:58.640Z"
+    },
+    {
+      "id": "1781533138648",
+      "userId": "1781402251376",
+      "modelId": "1781532723650",
+      "platform": "qq",
+      "createdAt": "2026-06-15T14:18:58.648Z"
+    },
+    {
+      "id": "1781533139609",
+      "userId": "1781402251376",
+      "modelId": "1781532723650",
+      "platform": "weibo",
+      "createdAt": "2026-06-15T14:18:59.609Z"
+    },
+    {
+      "id": "1781686740055",
+      "userId": "1781402251376",
+      "modelId": "1781401819081",
+      "platform": "wechat",
+      "createdAt": "2026-06-17T08:59:00.055Z"
+    },
+    {
+      "id": "1781686742040",
+      "userId": "1781402251376",
+      "modelId": "1781401819081",
+      "platform": "qq",
+      "createdAt": "2026-06-17T08:59:02.040Z"
+    },
+    {
+      "id": "1782311700479",
+      "userId": "1782311651181",
+      "modelId": "1782050992344",
+      "platform": "link",
+      "createdAt": "2026-06-24T14:35:00.479Z"
+    }
+  ],
+  "comments": [
+    {
+      "id": "1781400482590",
+      "userId": "1781400466845",
+      "username": "testuser1",
+      "modelId": "1780646403456",
+      "content": "̫���ˣ����ģ�ʹ�ӡЧ���ܺã�",
+      "likes": 1,
+      "likedBy": [
+        "1780648804834"
+      ],
+      "createdAt": "2026-06-14T01:28:02.590Z"
+    },
+    {
+      "id": "1781401190773",
+      "userId": "1780648804834",
+      "username": "skalu",
+      "modelId": "1781400847297",
+      "content": "好好好",
+      "likes": 1,
+      "likedBy": [
+        "1781402251376"
+      ],
+      "createdAt": "2026-06-14T01:39:50.773Z"
+    },
+    {
+      "id": "1781402268823",
+      "userId": "1781402251376",
+      "username": "test1",
+      "modelId": "1781401819081",
+      "content": "喜欢这个",
+      "likes": 1,
+      "likedBy": [
+        "1781402251376"
+      ],
+      "createdAt": "2026-06-14T01:57:48.823Z"
+    }
+  ],
+  "follows": [
+    {
+      "id": "1781400498118",
+      "followerId": "1781400466845",
+      "followingId": "1780648804834",
+      "createdAt": "2026-06-14T01:28:18.118Z"
+    },
+    {
+      "id": "1781532539484",
+      "followerId": "1781402251376",
+      "followingId": "1780648804834",
+      "createdAt": "2026-06-15T14:08:59.484Z"
+    },
+    {
+      "id": "1782050613848",
+      "followerId": "1780648804834",
+      "followingId": "1781402251376",
+      "createdAt": "2026-06-21T14:03:33.848Z"
+    },
+    {
+      "id": "1782311810167",
+      "followerId": "1782311651181",
+      "followingId": "1780648804834",
+      "createdAt": "2026-06-24T14:36:50.167Z"
+    }
+  ]
+}
