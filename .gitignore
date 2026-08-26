@@ -43,3 +43,4 @@ __pycache__/
 
 # 打包产物
 *.zip
+*.tar.gz

@@ -33,7 +33,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { isAuthenticated, getUser, logout } from '@/utils/auth'
 import { ICONS } from '@/utils/icons'
@@ -45,6 +45,13 @@ const route = useRoute()
 const isLoggedIn = ref(isAuthenticated())
 const currentUser = ref(getUser())
 const showDropdown = ref(false)
+
+// 资料/头像在其他页面更新后，同步刷新本组件显示
+function refreshUser() {
+  currentUser.value = getUser()
+}
+onMounted(() => window.addEventListener('user-updated', refreshUser))
+onUnmounted(() => window.removeEventListener('user-updated', refreshUser))
 
 const currentRoute = computed(() => {
   if (route.name === 'Home') return 'home'

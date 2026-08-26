@@ -30,6 +30,12 @@
             <button v-if="isMe" class="btn-edit" @click="showEditModal = true">编辑资料</button>
           </div>
 
+          <!-- 邮箱未验证提示（仅自己可见） -->
+          <div v-if="isMe && !user.emailVerified" class="verify-banner">
+            <span>邮箱未验证，上传 / 评论 / 关注功能受限</span>
+            <a href="#" @click.prevent="$router.push('/verify-email')">去验证 →</a>
+          </div>
+
           <div class="stats-row">
             <span class="stat-item" @click="goTo('/user/' + user.id + '/following')">
               <strong>{{ user.followingCount || 0 }}</strong> 关注
@@ -119,6 +125,10 @@
         </div>
         <div class="modal-body">
           <div class="form-group">
+            <label>用户名</label>
+            <input v-model="editForm.username" type="text" maxlength="20" placeholder="3-20 个字符" />
+          </div>
+          <div class="form-group">
             <label>邮箱（可选）</label>
             <input v-model="editForm.email" type="email" placeholder="example@mail.com" />
           </div>
@@ -150,7 +160,7 @@ import { ref, reactive, computed, watch, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import NavBar from '@/components/NavBar.vue'
 import { get, put, post, del, upload } from '@/utils/request'
-import { isAuthenticated, getUser } from '@/utils/auth'
+import { isAuthenticated, getUser, setUser } from '@/utils/auth'
 
 const route = useRoute()
 const router = useRouter()
@@ -167,6 +177,7 @@ const user = reactive({
   email: '',
   bio: '',
   avatarUrl: '',
+  emailVerified: 1,
   followingCount: 0,
   followersCount: 0,
   modelsCount: 0,
@@ -174,6 +185,7 @@ const user = reactive({
 })
 
 const editForm = reactive({
+  username: '',
   email: '',
   bio: ''
 })
@@ -184,7 +196,8 @@ const iFollow = ref(false)
 
 const isMe = computed(() => {
   const me = getUser()
-  return me && me.id === user.id
+  // String() 容错：防止 id 类型不一致（string/number）导致 === 失败
+  return !!(me && user.id && String(me.id) === String(user.id))
 })
 
 function goTo(path) {
@@ -258,6 +271,12 @@ async function onAvatarChange(e) {
   try {
     const data = await upload('/api/user/avatar', formData)
     user.avatarUrl = data.avatarUrl
+    // 同步 localStorage 缓存 + 通知全局（其他页面显示新头像）
+    const me = getUser()
+    if (me) {
+      setUser({ ...me, avatarUrl: data.avatarUrl })
+      window.dispatchEvent(new CustomEvent('user-updated'))
+    }
   } catch (err) {
     alert('头像上传失败：' + (err.message || '未知错误'))
   }
@@ -267,15 +286,44 @@ async function onAvatarChange(e) {
 
 // ========== 保存个人资料 ==========
 async function saveProfile() {
+  // 前端校验：空名字/长度/邮箱格式，给用户明确提示
+  const name = (editForm.username || '').trim()
+  if (!name) {
+    alert('用户名不能为空')
+    return
+  }
+  if (name.length < 3 || name.length > 20) {
+    alert('用户名长度应为 3-20 个字符')
+    return
+  }
+  const email = (editForm.email || '').trim()
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    alert('邮箱格式不正确')
+    return
+  }
+
   saveLoading.value = true
   try {
+    // 注意：字段直传（不用 || undefined），空字符串表示清空该字段
     const data = await put('/api/user/me', {
-      email: editForm.email || undefined,
-      bio: editForm.bio || undefined
+      username: name,
+      email: email,
+      bio: editForm.bio || ''
     })
+    // 同步页面显示
+    user.username = data.username || user.username
     user.email = data.email || ''
     user.bio = data.bio || ''
+
+    // 同步 localStorage 缓存 + 通知全局（NavBar 等）
+    const me = getUser()
+    if (me) {
+      setUser({ ...me, username: user.username, email: user.email, bio: user.bio })
+      window.dispatchEvent(new CustomEvent('user-updated'))
+    }
+
     showEditModal.value = false
+    alert('保存成功')
   } catch (err) {
     alert('保存失败：' + (err.message || '未知错误'))
   } finally {
@@ -317,9 +365,15 @@ async function deleteModel(m) {
 // 打开编辑弹窗时自动回填
 watch(showEditModal, (val) => {
   if (val) {
+    editForm.username = user.username || ''
     editForm.email = user.email || ''
     editForm.bio = user.bio || ''
   }
+})
+
+// 路由参数变化时重新加载（组件复用场景：从别人主页跳自己主页，否则显示旧数据）
+watch(() => route.params.id, () => {
+  if (route.params.id) fetchUser()
 })
 
 onMounted(() => {
@@ -422,6 +476,26 @@ onMounted(() => {
 }
 
 /* 统计行 */
+.verify-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 10px;
+  padding: 8px 14px;
+  background: #fdf6ec;
+  border: 1px solid #faecd8;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #b88230;
+}
+
+.verify-banner a {
+  color: #409eff;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
 .stats-row {
   display: flex;
   gap: 20px;

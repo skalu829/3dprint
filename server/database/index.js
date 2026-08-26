@@ -32,6 +32,9 @@ sqlite.exec(`
     password  TEXT NOT NULL,
     bio       TEXT DEFAULT '',
     avatarUrl TEXT DEFAULT '',
+    emailVerified INTEGER DEFAULT 0,     -- 新注册用户默认未验证
+    verifyCode    TEXT DEFAULT '',       -- 6位邮箱验证码
+    verifyExpires INTEGER DEFAULT 0,     -- 验证码过期时间戳(ms)
     createdAt TEXT NOT NULL
   );
   CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
@@ -97,6 +100,20 @@ sqlite.exec(`
   CREATE UNIQUE INDEX IF NOT EXISTS uniq_follows ON follows(followerId, followingId);
 `)
 
+// ---------- 老库升级：为已有 users 表补邮箱验证列 ----------
+// ALTER ADD COLUMN 带 DEFAULT 1 时，存量行自动填 1 —— 老用户直接视为已验证；
+// 新注册用户在 auth.js 中显式 INSERT emailVerified=0
+function ensureColumn(table, column, ddl) {
+  const cols = sqlite.prepare(`PRAGMA table_info(${table})`).all().map(c => c.name)
+  if (!cols.includes(column)) {
+    sqlite.exec(`ALTER TABLE ${table} ADD COLUMN ${ddl}`)
+    console.log(`数据库升级: users 表新增列 ${column}`)
+  }
+}
+ensureColumn('users', 'emailVerified', "emailVerified INTEGER DEFAULT 1")
+ensureColumn('users', 'verifyCode', "verifyCode TEXT DEFAULT ''")
+ensureColumn('users', 'verifyExpires', "verifyExpires INTEGER DEFAULT 0")
+
 // ---------- 事务包装器：多表写入原子化 ----------
 function withTransaction(fn) {
   sqlite.exec('BEGIN IMMEDIATE') // 立即取写锁，避免锁升级失败
@@ -134,7 +151,7 @@ function migrateFromJSON() {
 
   const data = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'))
   withTransaction(() => {
-    const insUser = sqlite.prepare('INSERT INTO users (id, username, email, password, bio, avatarUrl, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?)')
+    const insUser = sqlite.prepare('INSERT INTO users (id, username, email, password, bio, avatarUrl, emailVerified, createdAt) VALUES (?, ?, ?, ?, ?, ?, 1, ?)')
     for (const u of data.users || []) {
       insUser.run(u.id, u.username, u.email || '', u.password, u.bio || '', u.avatarUrl || '', u.createdAt)
     }

@@ -5,9 +5,9 @@ const { SERVER_ROOT, THUMBNAIL_DIR, PYTHON_EXE, NEEDS_CONVERSION_EXT } = require
 const { sqlite, rowToModel } = require('../database')
 
 /**
- * 调用 Python 脚本生成缩略图和 STL 导出
+ * 调用 Python 脚本生成缩略图和 STL 导出（实际执行函数，勿直接调用，走下方串行队列）
  */
-function generateModelAssets(filePath, modelId, fileExt) {
+function runGenerationJob(filePath, modelId, fileExt) {
   return new Promise((resolve, reject) => {
     const script = path.join(SERVER_ROOT, 'generate_thumbnail.py')
 
@@ -56,6 +56,16 @@ function getModelBaseName(model) {
  * 模型数据增强（缩略图 + STL 状态）
  */
 function enrichModels(models) {
+  // 批量查作者头像：一次 IN 查询替代逐条查询
+  const userIds = [...new Set(models.map(m => m.userId).filter(Boolean))]
+  const avatarMap = {}
+  if (userIds.length > 0) {
+    const placeholders = userIds.map(() => '?').join(',')
+    sqlite.prepare(`SELECT id, avatarUrl FROM users WHERE id IN (${placeholders})`)
+      .all(...userIds)
+      .forEach(u => { avatarMap[u.id] = u.avatarUrl || '' })
+  }
+
   return models.map(m => {
     const baseName = getModelBaseName(m)
     const thumbExists = fs.existsSync(path.join(THUMBNAIL_DIR, `${baseName}_thumb.png`))
@@ -65,6 +75,7 @@ function enrichModels(models) {
 
     return {
       ...m,
+      authorAvatarUrl: avatarMap[m.userId] || '',
       hasThumbnail: thumbExists,
       thumbnailUrl: thumbExists ? `/api/models/${m.id}/thumbnail` : null,
       hasStl: isNativeStl || stlExportExists,
@@ -104,6 +115,17 @@ async function generateMissingAssets() {
       console.error(`模型 ${m.id} 资产生成失败:`, err.message)
     }
   }
+}
+
+/**
+ * 串行队列：同一时刻只允许一个 Python 生成任务在跑。
+ * 小内存服务器（2G）上单个任务内存峰值可达 1.5G+，并发必触发 OOM 被内核击杀。
+ */
+let jobChain = Promise.resolve()
+function generateModelAssets(filePath, modelId, fileExt) {
+  const job = jobChain.then(() => runGenerationJob(filePath, modelId, fileExt))
+  jobChain = job.catch(() => {}) // 队列本身不因单个任务失败而中断
+  return job
 }
 
 module.exports = { generateModelAssets, getModelBaseName, enrichModels, generateMissingAssets }

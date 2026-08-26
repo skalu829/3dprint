@@ -2,7 +2,7 @@ const express = require('express')
 const fs = require('fs')
 const path = require('path')
 const { sqlite, isUniqueViolation } = require('../database')
-const { authMiddleware } = require('../middleware/auth')
+const { authMiddleware, requireVerified } = require('../middleware/auth')
 const { avatarUpload } = require('../middleware/upload')
 const { getModelBaseName, enrichModels } = require('../services/assets')
 const { THUMBNAIL_DIR } = require('../config')
@@ -20,6 +20,7 @@ function publicUser(u) {
     email: u.email || '',
     bio: u.bio || '',
     avatarUrl: u.avatarUrl || '',
+    emailVerified: Number(u.emailVerified) || 0,
     createdAt: u.createdAt
   }
 }
@@ -60,14 +61,32 @@ router.get('/me', authMiddleware, async (req, res) => {
 // ========== 更新当前用户信息 ==========
 router.put('/me', authMiddleware, async (req, res) => {
   try {
-    const { email, bio } = req.body
+    const { username, email, bio } = req.body
     const user = sqlite.prepare('SELECT * FROM users WHERE id = ?').get(req.user.id)
     if (!user) {
       return res.status(404).json({ error: '用户不存在' })
     }
+
+    // 用户名：非空、3-20 字符、唯一
+    let newUsername = user.username
+    if (username !== undefined) {
+      const name = String(username || '').trim()
+      if (!name) {
+        return res.status(400).json({ error: '用户名不能为空' })
+      }
+      if (name.length < 3 || name.length > 20) {
+        return res.status(400).json({ error: '用户名长度应为 3-20 个字符' })
+      }
+      if (name !== user.username &&
+          sqlite.prepare('SELECT id FROM users WHERE username = ? AND id != ?').get(name, user.id)) {
+        return res.status(409).json({ error: '该用户名已被占用' })
+      }
+      newUsername = name
+    }
+
     let newEmail = user.email
-    let newBio = user.bio
     if (email !== undefined) {
+      // 空字符串表示清空邮箱
       if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
         return res.status(400).json({ error: '邮箱格式不正确' })
       }
@@ -76,14 +95,16 @@ router.put('/me', authMiddleware, async (req, res) => {
       }
       newEmail = email
     }
+    let newBio = user.bio
     if (bio !== undefined) {
       if (bio.length > 200) {
         return res.status(400).json({ error: '个人简介不能超过 200 个字符' })
       }
       newBio = bio
     }
-    sqlite.prepare('UPDATE users SET email = ?, bio = ? WHERE id = ?').run(newEmail, newBio, user.id)
-    res.json({ email: newEmail, bio: newBio })
+    sqlite.prepare('UPDATE users SET username = ?, email = ?, bio = ? WHERE id = ?')
+      .run(newUsername, newEmail, newBio, user.id)
+    res.json({ username: newUsername, email: newEmail, bio: newBio })
   } catch (err) {
     console.error('更新用户信息错误:', err)
     res.status(500).json({ error: '服务器内部错误' })
@@ -118,8 +139,10 @@ router.post('/avatar', authMiddleware, avatarUpload.single('avatar'), async (req
 router.get('/favorites', authMiddleware, async (req, res) => {
   try {
     const rows = sqlite.prepare(`
-      SELECT m.*, f.createdAt AS favoritedAt
-      FROM favorites f JOIN models m ON m.id = f.modelId
+      SELECT m.*, f.createdAt AS favoritedAt, u.avatarUrl AS authorAvatarUrl
+      FROM favorites f
+      JOIN models m ON m.id = f.modelId
+      LEFT JOIN users u ON u.id = m.userId
       WHERE f.userId = ?
       ORDER BY f.createdAt DESC
     `).all(req.user.id)
@@ -145,8 +168,10 @@ router.get('/favorites', authMiddleware, async (req, res) => {
 router.get('/:id/favorites', async (req, res) => {
   try {
     const rows = sqlite.prepare(`
-      SELECT m.*, f.createdAt AS favoritedAt
-      FROM favorites f JOIN models m ON m.id = f.modelId
+      SELECT m.*, f.createdAt AS favoritedAt, u.avatarUrl AS authorAvatarUrl
+      FROM favorites f
+      JOIN models m ON m.id = f.modelId
+      LEFT JOIN users u ON u.id = m.userId
       WHERE f.userId = ?
       ORDER BY f.createdAt DESC
     `).all(req.params.id)
@@ -169,7 +194,7 @@ router.get('/:id/favorites', async (req, res) => {
 })
 
 // ========== 关注用户 ==========
-router.post('/:userId/follow', authMiddleware, async (req, res) => {
+router.post('/:userId/follow', authMiddleware, requireVerified, async (req, res) => {
   try {
     const followingId = req.params.userId
     const followerId = req.user.id
@@ -243,7 +268,7 @@ router.get('/:userId/follow', authMiddleware, async (req, res) => {
 router.get('/following', authMiddleware, async (req, res) => {
   try {
     const rows = sqlite.prepare(`
-      SELECT u.id, u.username, f.createdAt AS followedAt
+      SELECT u.id, u.username, u.avatarUrl, f.createdAt AS followedAt
       FROM follows f JOIN users u ON u.id = f.followingId
       WHERE f.followerId = ?
       ORDER BY f.createdAt DESC
@@ -259,7 +284,7 @@ router.get('/following', authMiddleware, async (req, res) => {
 router.get('/followers', authMiddleware, async (req, res) => {
   try {
     const rows = sqlite.prepare(`
-      SELECT u.id, u.username, f.createdAt AS followedAt
+      SELECT u.id, u.username, u.avatarUrl, f.createdAt AS followedAt
       FROM follows f JOIN users u ON u.id = f.followerId
       WHERE f.followingId = ?
       ORDER BY f.createdAt DESC
@@ -327,8 +352,8 @@ router.get('/feed', authMiddleware, async (req, res) => {
     // 附带作者信息（避免前端二次请求）
     const authors = {}
     for (const id of [...new Set(feedModels.map(m => m.userId))]) {
-      const u = sqlite.prepare('SELECT id, username FROM users WHERE id = ?').get(id)
-      if (u) authors[id] = u
+      const u = sqlite.prepare('SELECT id, username, avatarUrl FROM users WHERE id = ?').get(id)
+      if (u) authors[id] = { ...u, avatarUrl: u.avatarUrl || '' }
     }
 
     res.json({

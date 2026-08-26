@@ -23,7 +23,8 @@
 
       <div v-else class="follower-list">
         <div v-for="u in list" :key="u.id" class="follower-card" @click="goToProfile(u.id)">
-          <div class="follower-avatar">{{ u.username[0] }}</div>
+          <img v-if="u.avatarUrl" :src="u.avatarUrl" :alt="u.username" class="follower-avatar follower-avatar-img" />
+          <div v-else class="follower-avatar">{{ u.username[0] }}</div>
           <div class="follower-info">
             <span class="follower-name">{{ u.username }}</span>
             <span class="follower-date">关注于 {{ formatDate(u.followedAt) }}</span>
@@ -181,4 +182,5 @@ onMounted(fetchData)
   color: #909399;
   font-size: 13px;
 }
+.follower-avatar-img { object-fit: cover; background: #f0f2f5; }
 </style>

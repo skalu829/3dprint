@@ -74,7 +74,8 @@
           <!-- 底部 -->
           <div class="card-footer">
             <div class="card-author">
-              <span class="author-initial">{{ m.author[0] }}</span>
+              <img v-if="m.authorAvatarUrl" :src="apiBase + m.authorAvatarUrl" :alt="m.author" class="author-avatar-img" />
+              <span v-else class="author-initial">{{ m.author[0] }}</span>
               <span class="author-name">{{ m.author }}</span>
             </div>
             <div class="card-stats">
@@ -107,7 +108,7 @@ import NavBar from '@/components/NavBar.vue'
 import { get } from '@/utils/request'
 
 // API 基础地址（用于图片等静态资源）
-const apiBase = process.env.VUE_APP_API_BASE || 'http://localhost:3001'
+const apiBase = process.env.VUE_APP_API_BASE || ''
 
 // ========== 搜索与筛选 ==========
 const searchKeyword = ref('')
@@ -139,6 +140,7 @@ function remoteToCard(m, idx) {
     title: m.title,
     description: m.description,
     author: m.username,
+    authorAvatarUrl: m.authorAvatarUrl || '',
     tags: m.tags,
     downloads: m.downloads,
     likes: m.likes,
@@ -382,6 +384,9 @@ function formatNum(n) {
   overflow: hidden;
   cursor: pointer;
   transition: transform 0.2s, box-shadow 0.2s;
+  /* 纵向 flex：footer 固定贴底，标签有无/描述长短不再影响其位置 */
+  display: flex;
+  flex-direction: column;
 }
 
 .model-card:hover {
@@ -420,6 +425,8 @@ function formatNum(n) {
 
 .card-body {
   padding: 16px;
+  /* 占满剩余高度，把 footer 推到卡片最底部 */
+  flex: 1;
 }
 
 .card-title {
@@ -484,6 +491,13 @@ function formatNum(n) {
   justify-content: center;
   font-size: 12px;
   font-weight: 700;
+}
+
+.author-avatar-img {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
 }
 
 .author-name {

@@ -41,7 +41,8 @@
           <!-- 右侧卡片 -->
           <div class="card-body">
             <div class="card-author-row">
-              <span class="author-avatar">{{ (authors[model.userId]?.username || '?')[0] }}</span>
+              <img v-if="authors[model.userId]?.avatarUrl" :src="authors[model.userId].avatarUrl" :alt="authors[model.userId].username" class="author-avatar author-avatar-img" />
+              <span v-else class="author-avatar">{{ (authors[model.userId]?.username || '?')[0] }}</span>
               <div class="author-meta">
                 <span class="author-name">{{ authors[model.userId]?.username || '未知用户' }}</span>
                 <span class="publish-time">{{ formatRelativeTime(model.createdAt) }}</span>
@@ -305,6 +306,10 @@ onMounted(() => fetchFeed())
   font-size: 14px;
   font-weight: 700;
   flex-shrink: 0;
+}
+.author-avatar-img {
+  object-fit: cover;
+  background: #f0f2f5;
 }
 .author-meta {
   display: flex;

@@ -31,7 +31,8 @@
           :key="u.id"
           class="follower-card"
         >
-          <div class="follower-avatar">{{ u.username[0] }}</div>
+          <img v-if="u.avatarUrl" :src="u.avatarUrl" :alt="u.username" class="follower-avatar follower-avatar-img" />
+          <div v-else class="follower-avatar">{{ u.username[0] }}</div>
           <div class="follower-info">
             <span class="follower-name">{{ u.username }}</span>
             <span class="follower-date">关注于 {{ formatDate(u.followedAt) }}</span>
@@ -249,4 +250,5 @@ onMounted(fetchFollowers)
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+.follower-avatar-img { object-fit: cover; background: #f0f2f5; }
 </style>

@@ -34,12 +34,24 @@ export function isAuthenticated() {
 
 // ========== 注册 ==========
 export async function register(username, password, email) {
-  const body = { username, password }
-  if (email) body.email = email
+  const body = { username, password, email }
   const data = await post('/api/auth/register', body)
   setToken(data.token)
   setUser(data.user)
-  return data.user
+  return data
+}
+
+// ========== 邮箱验证 ==========
+export async function verifyEmail(code) {
+  return post('/api/auth/verify-email', { code })
+}
+
+export async function resendVerification() {
+  return post('/api/auth/resend-verification', {})
+}
+
+export async function getVerificationStatus() {
+  return get('/api/auth/verification-status')
 }
 
 // ========== 登录 ==========

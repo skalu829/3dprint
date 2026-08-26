@@ -53,7 +53,8 @@
           </div>
           <div class="card-footer">
             <div class="card-author">
-              <span class="author-initial">{{ (m.username || '?')[0] }}</span>
+              <img v-if="m.authorAvatarUrl" :src="m.authorAvatarUrl" :alt="m.username" class="author-avatar-img" />
+              <span v-else class="author-initial">{{ (m.username || '?')[0] }}</span>
               <span class="author-name">{{ m.username || '未知' }}</span>
             </div>
             <div class="card-stats">
@@ -168,6 +169,8 @@ onMounted(fetchFavorites)
   overflow: hidden;
   cursor: pointer;
   transition: transform 0.2s, box-shadow 0.2s;
+  display: flex;
+  flex-direction: column;
 }
 .model-card:hover {
   transform: translateY(-4px);
@@ -201,6 +204,7 @@ onMounted(fetchFavorites)
 
 .card-body {
   padding: 14px 16px;
+  flex: 1;
 }
 .card-title {
   font-size: 15px;
@@ -256,6 +260,12 @@ onMounted(fetchFavorites)
   justify-content: center;
   font-size: 12px;
   font-weight: 700;
+}
+.author-avatar-img {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
 }
 .author-name {
   font-size: 12px;

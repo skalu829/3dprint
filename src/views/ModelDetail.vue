@@ -71,12 +71,14 @@
 
           <!-- 作者信息卡片 -->
           <div class="author-card">
-            <div class="author-avatar">{{ model.author.name[0] }}</div>
+            <img v-if="model.author.avatarUrl" :src="model.author.avatarUrl" :alt="model.author.name" class="author-avatar author-avatar-img" />
+            <div v-else class="author-avatar">{{ model.author.name[0] }}</div>
             <div class="author-info">
               <span class="author-name">{{ model.author.name }}</span>
               <span class="author-meta">{{ model.author.followers }} 位关注者 · {{ model.author.models }} 个模型</span>
             </div>
             <button
+              v-if="!isOwnModel"
               class="btn-follow"
               :class="{ following: following }"
               :disabled="followLoading || (model.author.id === 'seed')"
@@ -265,7 +267,8 @@
             :key="comment.id"
             class="comment-item"
           >
-            <div class="comment-avatar">{{ comment.username[0] }}</div>
+            <img v-if="comment.avatarUrl" :src="comment.avatarUrl" :alt="comment.username" class="comment-avatar comment-avatar-img" />
+            <div v-else class="comment-avatar">{{ comment.username[0] }}</div>
             <div class="comment-body">
               <div class="comment-header">
                 <span class="comment-user">{{ comment.username }}</span>
@@ -420,6 +423,12 @@ const isOwner = computed(() => {
   if (!isAuthenticated()) return false
   const user = getUser()
   return user && (user.id === modelUserId.value)
+})
+
+// ========== 是否自己的模型（隐藏"关注自己"按钮） ==========
+const isOwnModel = computed(() => {
+  const me = getUser()
+  return !!(me && model.author.id && String(me.id) === String(model.author.id))
 })
 
 // ========== 编辑弹窗 ==========
@@ -673,7 +682,7 @@ async function fetchModel() {
     model.license = 'CC BY-SA 4.0'
 
     // 基础文件信息
-    model.author = { id: data.userId, name: data.username, followers: 0, models: 1 }
+    model.author = { id: data.userId, name: data.username, followers: 0, models: 1, avatarUrl: data.authorAvatarUrl || '' }
     model.stats = {
       downloads: data.downloads || 0,
       likes: data.likes || 0,
@@ -681,11 +690,12 @@ async function fetchModel() {
       views: data.views || 0,
       shares: data.shares || 0
     }
+    // fileUrl 兜底：历史数据存的是 http://localhost:3001/...，剥掉 host 改为相对路径跟随当前域名
     model.files = [{
       name: data.fileName,
       ext: data.fileExt.replace('.', ''),
       size: formatFileSize(data.fileSize),
-      url: data.fileUrl
+      url: (data.fileUrl || '').replace(/^https?:\/\/[^/]+/, '')
     }]
     model.description = data.description || '暂无描述'
     model.printParams = null
@@ -970,6 +980,10 @@ function onModelError(e) {
   font-weight: 700;
   font-size: 18px;
   flex-shrink: 0;
+}
+.author-avatar-img {
+  object-fit: cover;
+  background: #f0f2f5;
 }
 
 .author-info {
@@ -1366,6 +1380,10 @@ function onModelError(e) {
   font-size: 14px;
   font-weight: 600;
   flex-shrink: 0;
+}
+.comment-avatar-img {
+  object-fit: cover;
+  background: #f0f2f5;
 }
 
 .comment-body {

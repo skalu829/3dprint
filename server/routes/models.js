@@ -2,7 +2,7 @@ const express = require('express')
 const fs = require('fs')
 const path = require('path')
 const { sqlite, withTransaction, isUniqueViolation, rowToModel, rowToComment } = require('../database')
-const { authMiddleware } = require('../middleware/auth')
+const { authMiddleware, requireVerified } = require('../middleware/auth')
 const { upload } = require('../middleware/upload')
 const { generateModelAssets, getModelBaseName, enrichModels } = require('../services/assets')
 const { redisClient } = require('../services/cache')
@@ -28,7 +28,7 @@ async function invalidateModelCache(userId) {
 }
 
 // ========== 上传模型 ==========
-router.post('/', authMiddleware, upload.single('file'), async (req, res) => {
+router.post('/', authMiddleware, requireVerified, upload.single('file'), async (req, res) => {
   try {
     const { title, description, tags } = req.body
 
@@ -58,7 +58,7 @@ router.post('/', authMiddleware, upload.single('file'), async (req, res) => {
       fileSize: req.file.size,
       fileExt: path.extname(originalName).toLowerCase(),
       filePath: relativePath,
-      fileUrl: `http://localhost:${PORT}/${relativePath}`,
+      fileUrl: `/${relativePath}`, // 相对路径，跟随当前域名（勿硬编码 host，公网访问会挂）
       userId: req.user.id,
       username: req.user.username,
       downloads: 0,
@@ -406,7 +406,7 @@ router.get('/:id/shares', async (req, res) => {
 })
 
 // ========== 发表评论 ==========
-router.post('/:id/comments', authMiddleware, async (req, res) => {
+router.post('/:id/comments', authMiddleware, requireVerified, async (req, res) => {
   try {
     const modelId = req.params.id
     const userId = req.user.id
@@ -441,7 +441,9 @@ router.post('/:id/comments', authMiddleware, async (req, res) => {
       sqlite.prepare('UPDATE models SET comments = comments + 1 WHERE id = ?').run(modelId)
     })
 
-    res.status(201).json(comment)
+    // 附上评论者头像，前端直接插入列表使用
+    const author = sqlite.prepare('SELECT avatarUrl FROM users WHERE id = ?').get(userId)
+    res.status(201).json({ ...comment, avatarUrl: (author && author.avatarUrl) || '' })
   } catch (err) {
     console.error('发表评论错误:', err)
     res.status(500).json({ error: '服务器内部错误' })
@@ -451,8 +453,13 @@ router.post('/:id/comments', authMiddleware, async (req, res) => {
 // ========== 获取评论列表 ==========
 router.get('/:id/comments', async (req, res) => {
   try {
-    const rows = sqlite.prepare('SELECT * FROM comments WHERE modelId = ? ORDER BY createdAt DESC').all(req.params.id)
-    res.json(rows.map(rowToComment))
+    const rows = sqlite.prepare(`
+      SELECT c.*, u.avatarUrl AS authorAvatarUrl
+      FROM comments c LEFT JOIN users u ON u.id = c.userId
+      WHERE c.modelId = ?
+      ORDER BY c.createdAt DESC
+    `).all(req.params.id)
+    res.json(rows.map(r => ({ ...rowToComment(r), avatarUrl: r.authorAvatarUrl || '' })))
   } catch (err) {
     console.error('获取评论列表错误:', err)
     res.status(500).json({ error: '服务器内部错误' })
@@ -487,7 +494,7 @@ router.delete('/:id/comments/:commentId', authMiddleware, async (req, res) => {
 })
 
 // ========== 点赞评论 ==========
-router.post('/:id/comments/:commentId/like', authMiddleware, async (req, res) => {
+router.post('/:id/comments/:commentId/like', authMiddleware, requireVerified, async (req, res) => {
   try {
     const commentId = req.params.commentId
     const userId = req.user.id
@@ -576,9 +583,13 @@ router.get('/:id', async (req, res) => {
     const isNativeStl = ext === '.stl'
     const stlExportExists = fs.existsSync(path.join(THUMBNAIL_DIR, `${baseName}_export.stl`))
 
+    // 作者头像（前端作者卡片使用）
+    const authorRow = sqlite.prepare('SELECT avatarUrl FROM users WHERE id = ?').get(model.userId)
+
     res.json({
       ...model,
       baseName,
+      authorAvatarUrl: (authorRow && authorRow.avatarUrl) || '',
       hasThumbnail: thumbExists,
       thumbnailUrl: thumbExists ? `/api/models/${model.id}/thumbnail` : null,
       hasStl: isNativeStl || stlExportExists,

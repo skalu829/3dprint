@@ -51,12 +51,12 @@
         </div>
 
         <div v-if="mode === 'register'" class="form-group">
-          <label for="email">邮箱（可选）</label>
+          <label for="email">邮箱</label>
           <input
             id="email"
             v-model="form.email"
             type="email"
-            placeholder="选填，例如 example@mail.com"
+            placeholder="用于邮箱验证，例如 example@qq.com"
             :disabled="loading"
           />
         </div>
@@ -161,6 +161,14 @@ function validate() {
       errorMsg.value = '两次输入的密码不一致'
       return false
     }
+    if (!form.email.trim()) {
+      errorMsg.value = '请输入邮箱（注册后需验证）'
+      return false
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
+      errorMsg.value = '邮箱格式不正确'
+      return false
+    }
   }
   return true
 }
@@ -173,10 +181,19 @@ async function handleSubmit() {
   try {
     if (mode.value === 'login') {
       await login(form.username.trim(), form.password)
+      router.replace('/')
     } else {
-      await register(form.username.trim(), form.password, form.email.trim() || undefined)
+      const data = await register(form.username.trim(), form.password, form.email.trim())
+      // 注册后需邮箱验证，跳验证码页（宽松模式：也可跳过稍后验证）
+      if (data && data.needVerify) {
+        if (!data.mailSent && data.mailError) {
+          sessionStorage.setItem('verify_mail_note', data.mailError)
+        }
+        router.replace('/verify-email')
+      } else {
+        router.replace('/')
+      }
     }
-    router.replace('/')
   } catch (err) {
     errorMsg.value = err.message
   } finally {
