@@ -536,8 +536,21 @@ function formatNum(n) {
     grid-template-columns: 1fr;
   }
 
+  .hero {
+    padding: 40px 16px;
+  }
+
   .hero h1 {
     font-size: 24px;
+  }
+
+  .model-grid-section {
+    padding: 20px 12px;
+  }
+
+  .category-inner {
+    padding: 10px 12px;
+    overflow-x: auto;
   }
 }
 </style>

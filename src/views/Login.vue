@@ -214,6 +214,7 @@ async function handleSubmit() {
 
 .login-card {
   width: 400px;
+  max-width: 100%;
   background: #fff;
   border-radius: 16px;
   box-shadow: 0 8px 40px rgba(0, 0, 0, 0.08);
@@ -379,5 +380,26 @@ async function handleSubmit() {
 
 .login-footer a:hover {
   text-decoration: underline;
+}
+
+/* ========== 移动端 ========== */
+@media (max-width: 480px) {
+  .login-card {
+    padding: 28px 20px;
+    border-radius: 12px;
+  }
+
+  .login-logo {
+    font-size: 36px;
+  }
+
+  .login-header h2 {
+    font-size: 20px;
+  }
+
+  /* ≥16px 防 iOS 聚焦自动放大页面 */
+  .form-group input {
+    font-size: 16px;
+  }
 }
 </style>

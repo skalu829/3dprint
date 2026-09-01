@@ -1793,4 +1793,50 @@ function onModelError(e) {
   background: #a0cfff;
   cursor: not-allowed;
 }
+
+/* ========== 移动端适配 ========== */
+/* 平板：双栏 → 单栏（420px 侧栏放不下） */
+@media (max-width: 1024px) {
+  .detail-layout,
+  .bottom-section {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* 手机 */
+@media (max-width: 768px) {
+  .breadcrumb-inner {
+    padding: 8px 12px;
+    font-size: 12px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .main-content {
+    padding: 12px;
+  }
+
+  .preview-section {
+    /* 手机上预览区过高会占满首屏，压缩高度 */
+    min-height: 340px;
+  }
+
+  .title-block h1 {
+    font-size: 18px;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+
+  .related-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .comment-input-area textarea {
+    font-size: 16px; /* 防止 iOS 聚焦自动放大 */
+  }
+}
 </style>

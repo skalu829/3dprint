@@ -744,4 +744,11 @@ onMounted(() => {
   margin: 0 auto 12px;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* ========== 移动端 ========== */
+@media (max-width: 768px) {
+  .main-content {
+    padding: 20px 12px;
+  }
+}
 </style>

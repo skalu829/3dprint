@@ -2,6 +2,7 @@
 // 引入方式: import { ICONS } from '@/utils/icons'
 
 import {
+  mdiMenu,
   mdiPrinter3d,
   mdiHome,
   mdiCubeOutline,
@@ -65,6 +66,7 @@ export const ICONS = {
   chevronDown: mdiChevronDown,
 
   // 操作
+  menu: mdiMenu,
   magnify: mdiMagnify,
   close: mdiClose,
   heart: mdiHeart,

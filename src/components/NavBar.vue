@@ -28,12 +28,29 @@
         </template>
         <button v-else class="btn-login" @click="$router.push('/login')">登录</button>
       </div>
+      <!-- 移动端汉堡按钮 -->
+      <button class="btn-menu" aria-label="菜单" @click="menuOpen = !menuOpen">
+        <MaterialIcon :path="menuOpen ? ICONS.close : ICONS.menu" :size="24" color="#606266" />
+      </button>
+    </div>
+    <!-- 移动端抽屉菜单 -->
+    <div v-if="menuOpen" class="mobile-menu">
+      <router-link to="/" :class="{ active: currentRoute === 'home' }" @click="menuOpen = false">首页</router-link>
+      <a href="#" @click.prevent="menuOpen = false; goToLastViewed()">模型详情</a>
+      <router-link to="/feed" :class="{ active: currentRoute === 'feed' }" @click="menuOpen = false">关注动态</router-link>
+      <router-link to="/upload" @click="menuOpen = false">上传模型</router-link>
+      <template v-if="isLoggedIn">
+        <router-link :to="'/user/' + (currentUser?.id || 'me')" @click="menuOpen = false">个人主页</router-link>
+        <router-link to="/user/me/history" @click="menuOpen = false">浏览历史</router-link>
+        <a href="#" @click.prevent="handleLogout">退出登录</a>
+      </template>
+      <router-link v-else to="/login" @click="menuOpen = false">登录</router-link>
     </div>
   </header>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { isAuthenticated, getUser, logout } from '@/utils/auth'
 import { ICONS } from '@/utils/icons'
@@ -45,6 +62,7 @@ const route = useRoute()
 const isLoggedIn = ref(isAuthenticated())
 const currentUser = ref(getUser())
 const showDropdown = ref(false)
+const menuOpen = ref(false)
 
 // 资料/头像在其他页面更新后，同步刷新本组件显示
 function refreshUser() {
@@ -65,6 +83,7 @@ function handleLogout() {
   isLoggedIn.value = false
   currentUser.value = null
   showDropdown.value = false
+  menuOpen.value = false
   router.push('/login')
 }
 
@@ -85,6 +104,9 @@ function goToLastViewed() {
     router.push('/')
   }
 }
+
+// 路由变化时收起移动端菜单
+watch(() => route.path, () => { menuOpen.value = false })
 </script>
 
 <style scoped>
@@ -239,5 +261,60 @@ function goToLastViewed() {
   height: 1px;
   background: #f0f0f0;
   margin: 4px 0;
+}
+
+/* ========== 移动端（≤768px）：汉堡菜单 ========== */
+.btn-menu {
+  display: none;
+  background: transparent;
+  border: none;
+  padding: 8px;
+  margin-right: -8px;
+  cursor: pointer;
+  align-items: center;
+}
+
+.mobile-menu {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .navbar-inner {
+    padding: 0 16px;
+    gap: 16px;
+  }
+
+  .nav-links,
+  .nav-actions {
+    display: none;
+  }
+
+  .btn-menu {
+    display: inline-flex;
+  }
+
+  .mobile-menu {
+    display: flex;
+    flex-direction: column;
+    border-top: 1px solid #ebeef5;
+    background: #fff;
+    padding: 8px 0 12px;
+  }
+
+  .mobile-menu a {
+    padding: 12px 24px;
+    text-decoration: none;
+    color: #303133;
+    font-size: 15px;
+  }
+
+  .mobile-menu a.active {
+    color: #409eff;
+    font-weight: 600;
+  }
+
+  .logo-text {
+    font-size: 18px;
+  }
 }
 </style>

@@ -642,4 +642,55 @@ onBeforeUnmount(() => {
   padding: 12px 24px;
   border-radius: 8px;
 }
+
+/* ========== 移动端适配 ========== */
+@media (max-width: 768px) {
+  /* 工具栏：允许换行，避免按钮溢出屏幕 */
+  .toolbar {
+    flex-wrap: wrap;
+    justify-content: center;
+    max-width: calc(100% - 16px);
+    padding: 4px 6px;
+    gap: 2px;
+    font-size: 12px;
+  }
+
+  .toolbar button {
+    padding: 4px 8px;
+  }
+
+  /* 换行后分隔线无意义，隐藏 */
+  .toolbar-sep {
+    display: none;
+  }
+
+  /* 信息条：限制宽度，长文件名省略号显示 */
+  .info-bar {
+    max-width: calc(100% - 24px);
+    overflow: hidden;
+  }
+
+  .info-bar span:first-child {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+  }
+
+  .info-bar span:not(:first-child) {
+    flex-shrink: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .toolbar {
+    top: 8px;
+    font-size: 11px;
+    gap: 1px;
+  }
+
+  .toolbar button {
+    padding: 3px 7px;
+  }
+}
 </style>

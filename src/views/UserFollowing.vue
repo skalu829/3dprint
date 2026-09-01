@@ -255,4 +255,17 @@ onMounted(fetchFollowing)
   to { transform: rotate(360deg); }
 }
 .follower-avatar-img { object-fit: cover; background: #f0f2f5; }
+
+/* ========== 移动端 ========== */
+@media (max-width: 768px) {
+  .page-header {
+    padding: 28px 16px;
+  }
+  .page-header h1 {
+    font-size: 21px;
+  }
+  .main-content {
+    padding: 20px 12px;
+  }
+}
 </style>
