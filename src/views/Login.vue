@@ -38,6 +38,17 @@
           />
         </div>
 
+        <div v-if="mode === 'register'" class="form-group">
+          <label for="email">邮箱</label>
+          <input
+            id="email"
+            v-model="form.email"
+            type="email"
+            placeholder="用于邮箱验证，例如 example@qq.com"
+            :disabled="loading"
+          />
+        </div>
+
         <div class="form-group">
           <label for="password">密码</label>
           <input
@@ -46,17 +57,6 @@
             type="password"
             placeholder="请输入密码"
             autocomplete="current-password"
-            :disabled="loading"
-          />
-        </div>
-
-        <div v-if="mode === 'register'" class="form-group">
-          <label for="email">邮箱</label>
-          <input
-            id="email"
-            v-model="form.email"
-            type="email"
-            placeholder="用于邮箱验证，例如 example@qq.com"
             :disabled="loading"
           />
         </div>
@@ -144,6 +144,17 @@ function validate() {
     errorMsg.value = '用户名至少 3 个字符'
     return false
   }
+  // 校验顺序与表单视觉顺序保持一致：用户名 → 邮箱 → 密码 → 确认密码
+  if (mode.value === 'register') {
+    if (!form.email.trim()) {
+      errorMsg.value = '请输入邮箱（注册后需验证）'
+      return false
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
+      errorMsg.value = '邮箱格式不正确'
+      return false
+    }
+  }
   if (!form.password) {
     errorMsg.value = '请输入密码'
     return false
@@ -159,14 +170,6 @@ function validate() {
     }
     if (form.password !== form.confirmPassword) {
       errorMsg.value = '两次输入的密码不一致'
-      return false
-    }
-    if (!form.email.trim()) {
-      errorMsg.value = '请输入邮箱（注册后需验证）'
-      return false
-    }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
-      errorMsg.value = '邮箱格式不正确'
       return false
     }
   }
