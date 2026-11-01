@@ -53,7 +53,7 @@
             <!-- 有真实缩略图时显示缩略图 -->
             <img
               v-if="m.thumbnailUrl"
-              :src="apiBase + m.thumbnailUrl"
+              :src="m.thumbnailUrl"
               :alt="m.title"
               class="preview-thumb"
               loading="lazy"
@@ -74,7 +74,7 @@
           <!-- 底部 -->
           <div class="card-footer">
             <div class="card-author">
-              <img v-if="m.authorAvatarUrl" :src="apiBase + m.authorAvatarUrl" :alt="m.author" class="author-avatar-img" />
+              <img v-if="m.authorAvatarUrl" :src="m.authorAvatarUrl" :alt="m.author" class="author-avatar-img" />
               <span v-else class="author-initial">{{ m.author[0] }}</span>
               <span class="author-name">{{ m.author }}</span>
             </div>
@@ -106,9 +106,6 @@ import { ICONS, MODEL_ICONS } from '@/utils/icons'
 import { ref, computed, onMounted } from 'vue'
 import NavBar from '@/components/NavBar.vue'
 import { get } from '@/utils/request'
-
-// API 基础地址（用于图片等静态资源）
-const apiBase = process.env.VUE_APP_API_BASE || ''
 
 // ========== 搜索与筛选 ==========
 const searchKeyword = ref('')

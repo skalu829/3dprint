@@ -35,6 +35,11 @@ sqlite.exec(`
     emailVerified INTEGER DEFAULT 0,     -- 新注册用户默认未验证
     verifyCode    TEXT DEFAULT '',       -- 6位邮箱验证码
     verifyExpires INTEGER DEFAULT 0,     -- 验证码过期时间戳(ms)
+    pendingEmail TEXT DEFAULT '',        -- 待验证的新邮箱
+    emailChangeCode TEXT DEFAULT '',     -- 新邮箱验证码的 SHA-256 摘要
+    emailChangeExpires INTEGER DEFAULT 0,-- 新邮箱验证码过期时间戳(ms)
+    emailChangeSentAt INTEGER DEFAULT 0, -- 上次发送时间，用于重发冷却
+    emailChangeAttempts INTEGER DEFAULT 0,-- 验证码错误次数
     createdAt TEXT NOT NULL
   );
   CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
@@ -113,6 +118,11 @@ function ensureColumn(table, column, ddl) {
 ensureColumn('users', 'emailVerified', "emailVerified INTEGER DEFAULT 1")
 ensureColumn('users', 'verifyCode', "verifyCode TEXT DEFAULT ''")
 ensureColumn('users', 'verifyExpires', "verifyExpires INTEGER DEFAULT 0")
+ensureColumn('users', 'pendingEmail', "pendingEmail TEXT DEFAULT ''")
+ensureColumn('users', 'emailChangeCode', "emailChangeCode TEXT DEFAULT ''")
+ensureColumn('users', 'emailChangeExpires', "emailChangeExpires INTEGER DEFAULT 0")
+ensureColumn('users', 'emailChangeSentAt', "emailChangeSentAt INTEGER DEFAULT 0")
+ensureColumn('users', 'emailChangeAttempts', "emailChangeAttempts INTEGER DEFAULT 0")
 
 // ---------- 事务包装器：多表写入原子化 ----------
 function withTransaction(fn) {

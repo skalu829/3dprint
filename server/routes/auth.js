@@ -22,10 +22,13 @@ async function issueAndSendVerification(user) {
     .run(code, expires, user.id)
 
   try {
-    await sendVerificationEmail(user.email, code)
-    return { sent: true }
+    const info = await sendVerificationEmail(user.email, code)
+    // 成功也打日志：排查「用户说没收到」时，pm2 logs 能直接看到 SMTP 是否真的接收
+    const accepted = Array.isArray(info.accepted) ? info.accepted.join(',') : info.accepted
+    console.log(`[邮件] 验证码已提交 SMTP → ${user.email} | messageId=${info.messageId} | accepted=${accepted} | ${info.response || ''}`)
+    return { sent: true, messageId: info.messageId, accepted, response: info.response }
   } catch (err) {
-    console.error('验证码邮件发送失败:', err.message)
+    console.error(`[邮件] 验证码发送失败 → ${user.email} | code=${err.code} | ${err.message}`)
     return { sent: false, reason: err.message }
   }
 }
@@ -195,7 +198,7 @@ router.post('/resend-verification', authMiddleware, async (req, res) => {
     const lastSentAt = Number(user.verifyExpires) - CODE_TTL_MS
     if (lastSentAt > 0 && Date.now() - lastSentAt < RESEND_COOLDOWN_MS) {
       const wait = Math.ceil((RESEND_COOLDOWN_MS - (Date.now() - lastSentAt)) / 1000)
-      return res.status(429).json({ error: `发送太频繁，请 ${wait} 秒后再试` })
+      return res.status(429).json({ error: `发送太频繁，请 ${wait} 秒后再试`, retryAfter: wait })
     }
 
     const mail = await issueAndSendVerification(user)
@@ -212,13 +215,24 @@ router.post('/resend-verification', authMiddleware, async (req, res) => {
 // ========== 查询当前用户验证状态（验证页进入时用） ==========
 router.get('/verification-status', authMiddleware, async (req, res) => {
   try {
-    const user = sqlite.prepare('SELECT email, emailVerified FROM users WHERE id = ?').get(req.user.id)
+    const user = sqlite.prepare('SELECT email, emailVerified, verifyExpires FROM users WHERE id = ?').get(req.user.id)
     if (!user) {
       return res.status(401).json({ error: '用户不存在' })
     }
+    // codeActive：当前是否还存在未过期的验证码。
+    // 前端据此决定「直接填码」还是「自动发一封」——否则进入页面只会显示
+    // 上一次的文案，实际并没有发送，用户会以为收不到邮件。
+    const expires = Number(user.verifyExpires) || 0
+    const codeActive = expires > Date.now()
+    // 距离可再次发送还剩多少秒（0 表示随时可发）
+    const cooldownLeft = codeActive
+      ? Math.max(0, Math.ceil((expires - CODE_TTL_MS + RESEND_COOLDOWN_MS - Date.now()) / 1000))
+      : 0
     res.json({
       email: user.email || '',
-      emailVerified: Number(user.emailVerified) || 0
+      emailVerified: Number(user.emailVerified) || 0,
+      codeActive,
+      cooldownLeft
     })
   } catch (err) {
     console.error('查询验证状态错误:', err)

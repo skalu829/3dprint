@@ -37,6 +37,10 @@ server/app.db-wal
 *.db-shm
 *.db-wal
 
+# Server: LowDB 旧数据（含用户密码哈希，严禁入库）
+server/db.json
+db.json
+
 # Server: 备份与缓存
 server/index.js.bak
 __pycache__/
@@ -44,3 +48,10 @@ __pycache__/
 # 打包产物
 *.zip
 *.tar.gz
+
+# 本地调试截图与工具目录
+.mobile-shots/
+.pai/
+
+# 日志
+*.log

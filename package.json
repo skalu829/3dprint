@@ -2,24 +2,19 @@
   "name": "3dprint",
   "version": "0.1.0",
   "private": true,
+  "description": "3DPrint · 3D 打印模型分享平台（Vue 3 前端）",
   "scripts": {
     "serve": "vue-cli-service serve",
     "build": "vue-cli-service build",
     "lint": "vue-cli-service lint",
-    "server": "node server/index.js",
-    "start": "NODE_ENV=production node server/index.js",
-    "start:win": "set NODE_ENV=production && node server/index.js"
+    "server": "npm --prefix server run dev",
+    "server:start": "npm --prefix server start",
+    "install:all": "npm install && npm --prefix server install",
+    "start": "npm --prefix server start"
   },
   "dependencies": {
     "@mdi/js": "^7.4.47",
-    "bcryptjs": "^3.0.3",
     "core-js": "^3.8.3",
-    "dotenv": "^10.0.0",
-    "express": "^4.22.2",
-    "jsonwebtoken": "^9.0.3",
-    "multer": "^2.1.1",
-    "nodemailer": "^9.0.5",
-    "redis": "^6.2.1",
     "three": "0.160.1",
     "vue": "^3.2.13",
     "vue-router": "^5.0.7"

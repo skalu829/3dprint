@@ -1,13 +1,24 @@
 const express = require('express')
 const fs = require('fs')
 const path = require('path')
+const crypto = require('crypto')
 const { sqlite, isUniqueViolation } = require('../database')
 const { authMiddleware, requireVerified } = require('../middleware/auth')
 const { avatarUpload } = require('../middleware/upload')
 const { getModelBaseName, enrichModels } = require('../services/assets')
+const { sendEmailChangeVerification } = require('../services/mailer')
 const { THUMBNAIL_DIR } = require('../config')
 
 const router = express.Router()
+
+const EMAIL_CHANGE_TTL_MS = 10 * 60 * 1000
+const EMAIL_RESEND_COOLDOWN_MS = 60 * 1000
+const EMAIL_CHANGE_MAX_ATTEMPTS = 5
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+function hashEmailChangeCode(code) {
+  return crypto.createHash('sha256').update(String(code)).digest('hex')
+}
 
 // 注意：以下路由注册顺序与原 index.js 保持一致，勿随意调整
 // （固定路径路由需先于参数路由注册，如 /me、/favorites、/following）
@@ -85,15 +96,8 @@ router.put('/me', authMiddleware, async (req, res) => {
     }
 
     let newEmail = user.email
-    if (email !== undefined) {
-      // 空字符串表示清空邮箱
-      if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-        return res.status(400).json({ error: '邮箱格式不正确' })
-      }
-      if (email && sqlite.prepare('SELECT id FROM users WHERE email = ? AND id != ?').get(email, user.id)) {
-        return res.status(409).json({ error: '该邮箱已被注册' })
-      }
-      newEmail = email
+    if (email !== undefined && String(email).trim().toLowerCase() !== String(user.email || '').toLowerCase()) {
+      return res.status(400).json({ error: '修改邮箱需通过新邮箱验证码验证', code: 'EMAIL_VERIFICATION_REQUIRED' })
     }
     let newBio = user.bio
     if (bio !== undefined) {
@@ -107,6 +111,107 @@ router.put('/me', authMiddleware, async (req, res) => {
     res.json({ username: newUsername, email: newEmail, bio: newBio })
   } catch (err) {
     console.error('更新用户信息错误:', err)
+    res.status(500).json({ error: '服务器内部错误' })
+  }
+})
+
+// ========== 发送修改邮箱验证码 ==========
+router.post('/email-change/send-code', authMiddleware, async (req, res) => {
+  try {
+    const newEmail = String(req.body.newEmail || '').trim().toLowerCase()
+    if (!EMAIL_PATTERN.test(newEmail)) {
+      return res.status(400).json({ error: '请输入正确的新邮箱地址' })
+    }
+
+    const user = sqlite.prepare('SELECT * FROM users WHERE id = ?').get(req.user.id)
+    if (!user) return res.status(404).json({ error: '用户不存在' })
+    if (newEmail === String(user.email || '').toLowerCase()) {
+      return res.status(400).json({ error: '新邮箱不能与当前邮箱相同' })
+    }
+    if (sqlite.prepare('SELECT id FROM users WHERE email = ? AND id != ?').get(newEmail, user.id)) {
+      return res.status(409).json({ error: '该邮箱已被其他账号使用' })
+    }
+
+    const now = Date.now()
+    const sentAt = Number(user.emailChangeSentAt) || 0
+    if (now - sentAt < EMAIL_RESEND_COOLDOWN_MS) {
+      const retryAfter = Math.ceil((EMAIL_RESEND_COOLDOWN_MS - (now - sentAt)) / 1000)
+      return res.status(429).json({ error: `发送太频繁，请 ${retryAfter} 秒后再试`, retryAfter })
+    }
+
+    const code = String(crypto.randomInt(100000, 1000000))
+    sqlite.prepare(`UPDATE users SET pendingEmail = ?, emailChangeCode = ?, emailChangeExpires = ?,
+      emailChangeSentAt = ?, emailChangeAttempts = 0 WHERE id = ?`)
+      .run(newEmail, hashEmailChangeCode(code), now + EMAIL_CHANGE_TTL_MS, now, user.id)
+
+    try {
+      await sendEmailChangeVerification(newEmail, code)
+    } catch (mailError) {
+      // 发送失败不保留有效验证码和冷却时间，用户可立即重试。
+      sqlite.prepare(`UPDATE users SET pendingEmail = '', emailChangeCode = '', emailChangeExpires = 0,
+        emailChangeSentAt = 0, emailChangeAttempts = 0 WHERE id = ?`).run(user.id)
+      console.error(`[邮件] 修改邮箱验证码发送失败 → ${newEmail} | ${mailError.message}`)
+      return res.status(500).json({ error: '验证码发送失败，请稍后重试' })
+    }
+
+    res.json({ message: '验证码已发送至新邮箱，10 分钟内有效', expiresIn: 600, cooldown: 60 })
+  } catch (err) {
+    console.error('发送修改邮箱验证码错误:', err)
+    res.status(500).json({ error: '服务器内部错误' })
+  }
+})
+
+// ========== 验证新邮箱并完成修改 ==========
+router.post('/email-change/confirm', authMiddleware, async (req, res) => {
+  try {
+    const newEmail = String(req.body.newEmail || '').trim().toLowerCase()
+    const code = String(req.body.code || '').trim()
+    if (!EMAIL_PATTERN.test(newEmail) || !/^\d{6}$/.test(code)) {
+      return res.status(400).json({ error: '请输入正确的新邮箱和 6 位数字验证码' })
+    }
+
+    const user = sqlite.prepare('SELECT * FROM users WHERE id = ?').get(req.user.id)
+    if (!user) return res.status(404).json({ error: '用户不存在' })
+    if (!user.pendingEmail || !user.emailChangeCode) {
+      return res.status(400).json({ error: '请先获取新邮箱验证码' })
+    }
+    if (newEmail !== user.pendingEmail) {
+      return res.status(400).json({ error: '新邮箱已变更，请重新获取验证码' })
+    }
+    if (Date.now() > Number(user.emailChangeExpires)) {
+      return res.status(400).json({ error: '验证码已过期，请重新发送', code: 'EMAIL_CODE_EXPIRED' })
+    }
+    if (Number(user.emailChangeAttempts) >= EMAIL_CHANGE_MAX_ATTEMPTS) {
+      return res.status(429).json({ error: '验证码错误次数过多，请重新发送', code: 'EMAIL_CODE_ATTEMPTS_EXCEEDED' })
+    }
+
+    const suppliedHash = Buffer.from(hashEmailChangeCode(code))
+    const storedHash = Buffer.from(String(user.emailChangeCode))
+    if (suppliedHash.length !== storedHash.length || !crypto.timingSafeEqual(suppliedHash, storedHash)) {
+      const attempts = (Number(user.emailChangeAttempts) || 0) + 1
+      sqlite.prepare('UPDATE users SET emailChangeAttempts = ? WHERE id = ?').run(attempts, user.id)
+      if (attempts >= EMAIL_CHANGE_MAX_ATTEMPTS) {
+        return res.status(429).json({ error: '验证码错误次数过多，请重新发送', code: 'EMAIL_CODE_ATTEMPTS_EXCEEDED' })
+      }
+      return res.status(400).json({ error: `验证码错误，还可尝试 ${EMAIL_CHANGE_MAX_ATTEMPTS - attempts} 次` })
+    }
+
+    if (sqlite.prepare('SELECT id FROM users WHERE email = ? AND id != ?').get(newEmail, user.id)) {
+      return res.status(409).json({ error: '该邮箱已被其他账号使用' })
+    }
+
+    try {
+      sqlite.prepare(`UPDATE users SET email = ?, emailVerified = 1, pendingEmail = '', emailChangeCode = '',
+        emailChangeExpires = 0, emailChangeSentAt = 0, emailChangeAttempts = 0,
+        verifyCode = '', verifyExpires = 0 WHERE id = ?`).run(newEmail, user.id)
+    } catch (err) {
+      if (isUniqueViolation(err)) return res.status(409).json({ error: '该邮箱已被其他账号使用' })
+      throw err
+    }
+
+    res.json({ message: '邮箱修改成功', email: newEmail, emailVerified: 1 })
+  } catch (err) {
+    console.error('确认修改邮箱错误:', err)
     res.status(500).json({ error: '服务器内部错误' })
   }
 })

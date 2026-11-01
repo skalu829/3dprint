@@ -10,6 +10,19 @@ const { SERVER_ROOT, THUMBNAIL_DIR, PORT, PRESET_TAGS } = require('../config')
 
 const router = express.Router()
 
+// 缓存操作超时上限（毫秒）。Redis 处于重连状态时命令会排队不返回，
+// 这里强制兜底：超时即视为缓存不可用，直接降级查库，不让用户干等。
+const CACHE_TIMEOUT_MS = parseInt(process.env.REDIS_COMMAND_TIMEOUT, 10) || 500
+
+function withCacheTimeout(promise) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('缓存操作超时')), CACHE_TIMEOUT_MS)
+    )
+  ])
+}
+
 // 通过 ID 查模型（含 tags 解析）
 function getModelById(id) {
   return rowToModel(sqlite.prepare('SELECT * FROM models WHERE id = ?').get(id))
@@ -19,8 +32,8 @@ function getModelById(id) {
 async function invalidateModelCache(userId) {
   if (redisClient.isOpen) {
     try {
-      await redisClient.del('models:list')
-      await redisClient.del(`models:user:${userId}`)
+      await withCacheTimeout(redisClient.del('models:list'))
+      await withCacheTimeout(redisClient.del(`models:user:${userId}`))
     } catch (e) {
       console.warn('清理 Redis 缓存失败:', e.message)
     }
@@ -530,7 +543,7 @@ router.get('/', async (req, res) => {
     // 1. 尝试从 Redis 读缓存
     if (redisClient.isOpen) {
       try {
-        const cached = await redisClient.get(cacheKey)
+        const cached = await withCacheTimeout(redisClient.get(cacheKey))
         if (cached) {
           res.setHeader('X-Cache', 'HIT')
           return res.json(JSON.parse(cached))
@@ -555,7 +568,7 @@ router.get('/', async (req, res) => {
     if (redisClient.isOpen) {
       try {
         const ttl = parseInt(process.env.REDIS_MODEL_LIST_TTL) || 60
-        await redisClient.setEx(cacheKey, ttl, JSON.stringify(result))
+        await withCacheTimeout(redisClient.setEx(cacheKey, ttl, JSON.stringify(result)))
       } catch (e) {
         console.warn('写入 Redis 缓存失败:', e.message)
       }

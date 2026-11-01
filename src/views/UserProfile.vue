@@ -129,8 +129,33 @@
             <input v-model="editForm.username" type="text" maxlength="20" placeholder="3-20 个字符" />
           </div>
           <div class="form-group">
-            <label>邮箱（可选）</label>
-            <input v-model="editForm.email" type="email" placeholder="example@mail.com" />
+            <label>当前邮箱</label>
+            <div class="email-current-row">
+              <input :value="user.email || '未绑定邮箱'" type="text" disabled />
+              <button type="button" class="btn-email-change" @click="toggleEmailChange">
+                {{ showEmailChange ? '收起' : '修改邮箱' }}
+              </button>
+            </div>
+          </div>
+          <div v-if="showEmailChange" class="email-change-panel">
+            <div class="form-group">
+              <label>新邮箱</label>
+              <input v-model="emailChangeForm.newEmail" type="email" maxlength="254" placeholder="请输入新邮箱" :disabled="emailChangeLoading" />
+            </div>
+            <div class="form-group">
+              <label>新邮箱验证码</label>
+              <div class="email-code-row">
+                <input v-model="emailChangeForm.code" type="text" inputmode="numeric" maxlength="6" placeholder="6 位验证码" autocomplete="one-time-code" />
+                <button type="button" class="btn-send-code" :disabled="emailSending || emailCountdown > 0" @click="sendEmailCode">
+                  {{ emailSending ? '发送中...' : (emailCountdown > 0 ? `${emailCountdown}s 后重发` : '发送验证码') }}
+                </button>
+              </div>
+              <span class="email-code-tip">验证码 10 分钟内有效，60 秒后可重发，最多可尝试 5 次</span>
+            </div>
+            <div v-if="emailChangeError" class="email-change-error">{{ emailChangeError }}</div>
+            <button type="button" class="btn-confirm-email" :disabled="emailChangeLoading" @click="confirmEmailChange">
+              {{ emailChangeLoading ? '验证中...' : '验证并修改邮箱' }}
+            </button>
           </div>
           <div class="form-group">
             <label>个人简介</label>
@@ -156,7 +181,7 @@
 <script setup>
 import MaterialIcon from '@/components/MaterialIcon.vue'
 import { ICONS, PROFILE_ICONS } from '@/utils/icons'
-import { ref, reactive, computed, watch, onMounted } from 'vue'
+import { ref, reactive, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import NavBar from '@/components/NavBar.vue'
 import { get, put, post, del, upload } from '@/utils/request'
@@ -168,6 +193,12 @@ const router = useRouter()
 const avatarInput = ref(null)
 const showEditModal = ref(false)
 const saveLoading = ref(false)
+const showEmailChange = ref(false)
+const emailSending = ref(false)
+const emailChangeLoading = ref(false)
+const emailCountdown = ref(0)
+const emailChangeError = ref('')
+let emailCountdownTimer = null
 const activeTab = ref('models')
 const loading = ref(false)
 
@@ -186,8 +217,12 @@ const user = reactive({
 
 const editForm = reactive({
   username: '',
-  email: '',
   bio: ''
+})
+
+const emailChangeForm = reactive({
+  newEmail: '',
+  code: ''
 })
 
 const modelList = ref([])
@@ -284,9 +319,93 @@ async function onAvatarChange(e) {
   e.target.value = ''
 }
 
+// ========== 修改邮箱 ==========
+function startEmailCountdown(seconds = 60) {
+  emailCountdown.value = Math.max(0, Number(seconds) || 0)
+  if (emailCountdownTimer) clearInterval(emailCountdownTimer)
+  if (emailCountdown.value <= 0) return
+  emailCountdownTimer = setInterval(() => {
+    emailCountdown.value -= 1
+    if (emailCountdown.value <= 0) {
+      clearInterval(emailCountdownTimer)
+      emailCountdownTimer = null
+    }
+  }, 1000)
+}
+
+function toggleEmailChange() {
+  showEmailChange.value = !showEmailChange.value
+  emailChangeError.value = ''
+  if (showEmailChange.value) {
+    emailChangeForm.newEmail = ''
+    emailChangeForm.code = ''
+  }
+}
+
+async function sendEmailCode() {
+  const newEmail = emailChangeForm.newEmail.trim().toLowerCase()
+  emailChangeError.value = ''
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail)) {
+    emailChangeError.value = '请输入正确的新邮箱地址'
+    return
+  }
+  if (newEmail === String(user.email || '').toLowerCase()) {
+    emailChangeError.value = '新邮箱不能与当前邮箱相同'
+    return
+  }
+
+  emailSending.value = true
+  try {
+    await post('/api/user/email-change/send-code', { newEmail })
+    emailChangeForm.newEmail = newEmail
+    emailChangeForm.code = ''
+    startEmailCountdown(60)
+  } catch (err) {
+    emailChangeError.value = err.message || '验证码发送失败'
+    if (err.retryAfter) startEmailCountdown(err.retryAfter)
+  } finally {
+    emailSending.value = false
+  }
+}
+
+async function confirmEmailChange() {
+  const newEmail = emailChangeForm.newEmail.trim().toLowerCase()
+  const code = emailChangeForm.code.trim()
+  emailChangeError.value = ''
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail)) {
+    emailChangeError.value = '请输入正确的新邮箱地址'
+    return
+  }
+  if (!/^\d{6}$/.test(code)) {
+    emailChangeError.value = '请输入 6 位数字验证码'
+    return
+  }
+
+  emailChangeLoading.value = true
+  try {
+    const data = await post('/api/user/email-change/confirm', { newEmail, code })
+    user.email = data.email
+    user.emailVerified = 1
+    const me = getUser()
+    if (me) {
+      setUser({ ...me, email: data.email, emailVerified: 1 })
+      window.dispatchEvent(new CustomEvent('user-updated'))
+    }
+    showEmailChange.value = false
+    emailChangeForm.newEmail = ''
+    emailChangeForm.code = ''
+    startEmailCountdown(0)
+    alert('邮箱修改成功')
+  } catch (err) {
+    emailChangeError.value = err.message || '邮箱修改失败'
+  } finally {
+    emailChangeLoading.value = false
+  }
+}
+
 // ========== 保存个人资料 ==========
 async function saveProfile() {
-  // 前端校验：空名字/长度/邮箱格式，给用户明确提示
+  // 邮箱由独立验证码流程修改，普通资料保存只处理用户名和简介。
   const name = (editForm.username || '').trim()
   if (!name) {
     alert('用户名不能为空')
@@ -296,29 +415,20 @@ async function saveProfile() {
     alert('用户名长度应为 3-20 个字符')
     return
   }
-  const email = (editForm.email || '').trim()
-  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    alert('邮箱格式不正确')
-    return
-  }
-
   saveLoading.value = true
   try {
-    // 注意：字段直传（不用 || undefined），空字符串表示清空该字段
     const data = await put('/api/user/me', {
       username: name,
-      email: email,
       bio: editForm.bio || ''
     })
     // 同步页面显示
     user.username = data.username || user.username
-    user.email = data.email || ''
     user.bio = data.bio || ''
 
     // 同步 localStorage 缓存 + 通知全局（NavBar 等）
     const me = getUser()
     if (me) {
-      setUser({ ...me, username: user.username, email: user.email, bio: user.bio })
+      setUser({ ...me, username: user.username, bio: user.bio })
       window.dispatchEvent(new CustomEvent('user-updated'))
     }
 
@@ -366,7 +476,6 @@ async function deleteModel(m) {
 watch(showEditModal, (val) => {
   if (val) {
     editForm.username = user.username || ''
-    editForm.email = user.email || ''
     editForm.bio = user.bio || ''
   }
 })
@@ -378,6 +487,10 @@ watch(() => route.params.id, () => {
 
 onMounted(() => {
   fetchUser()
+})
+
+onUnmounted(() => {
+  if (emailCountdownTimer) clearInterval(emailCountdownTimer)
 })
 </script>
 
@@ -664,6 +777,8 @@ onMounted(() => {
   border-radius: 16px;
   width: 480px;
   max-width: 90vw;
+  max-height: 90vh;
+  overflow-y: auto;
   box-shadow: 0 12px 48px rgba(0,0,0,0.15);
 }
 .modal-header {
@@ -697,6 +812,52 @@ onMounted(() => {
 .modal-body textarea:focus { border-color: #409eff; }
 .modal-body textarea { resize: vertical; }
 .char-count { font-size: 12px; color: #909399; text-align: right; }
+.email-current-row,
+.email-code-row { display: flex; gap: 10px; }
+.email-current-row input,
+.email-code-row input { flex: 1; min-width: 0; }
+.email-current-row input:disabled { background: #f5f7fa; color: #909399; }
+.btn-email-change,
+.btn-send-code {
+  flex-shrink: 0;
+  padding: 0 14px;
+  border: 1px solid #409eff;
+  border-radius: 8px;
+  background: #fff;
+  color: #409eff;
+  font-size: 13px;
+  cursor: pointer;
+}
+.btn-email-change:hover,
+.btn-send-code:hover:not(:disabled) { background: #ecf5ff; }
+.btn-send-code:disabled { border-color: #c0c4cc; color: #c0c4cc; cursor: not-allowed; }
+.email-change-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+  border: 1px solid #d9ecff;
+  border-radius: 10px;
+  background: #f5faff;
+}
+.email-code-tip { font-size: 12px; color: #909399; line-height: 1.5; }
+.email-change-error { font-size: 13px; color: #f56c6c; line-height: 1.5; }
+.btn-confirm-email {
+  padding: 10px 16px;
+  border: none;
+  border-radius: 8px;
+  background: #409eff;
+  color: #fff;
+  font-size: 14px;
+  cursor: pointer;
+}
+.btn-confirm-email:disabled { opacity: 0.5; cursor: not-allowed; }
+@media (max-width: 480px) {
+  .email-current-row,
+  .email-code-row { flex-direction: column; }
+  .btn-email-change,
+  .btn-send-code { padding: 10px 14px; }
+}
 .modal-footer {
   display: flex;
   justify-content: flex-end;

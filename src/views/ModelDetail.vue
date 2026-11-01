@@ -690,12 +690,14 @@ async function fetchModel() {
       views: data.views || 0,
       shares: data.shares || 0
     }
-    // fileUrl 兜底：历史数据存的是 http://localhost:3001/...，剥掉 host 改为相对路径跟随当前域名
+    // fileUrl 已由请求层（utils/request.js）统一补全为绝对地址，
+    // 包括把历史数据里硬编码的 http://localhost:3001/... 改写为当前 API 地址，
+    // 这里直接使用，不要再剥 host（前后端分端口部署时剥掉会 404）
     model.files = [{
       name: data.fileName,
       ext: data.fileExt.replace('.', ''),
       size: formatFileSize(data.fileSize),
-      url: (data.fileUrl || '').replace(/^https?:\/\/[^/]+/, '')
+      url: data.fileUrl || ''
     }]
     model.description = data.description || '暂无描述'
     model.printParams = null

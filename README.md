@@ -1,4 +1,4 @@
-# 3DPrint · 3D 打印模型分享平台(http://47.97.107.232:3001)
+# 3DPrint · 3D 打印模型分享平台
 
 面向 3D 打印爱好者的模型分享社区：上传模型 → 在线 3D 预览 → 交流分享。
 
@@ -76,7 +76,8 @@
 │   ├── router/                 # 路由配置
 │   ├── store/                  # 状态管理
 │   └── api/ utils/ assets/
-├── server/                     # 后端源码（Express 分层架构）
+├── server/                     # 后端源码（Express 分层架构，独立 npm 包）
+│   ├── package.json            # 后端依赖清单（与前端分离）
 │   ├── config/                 # 环境变量加载与业务配置
 │   ├── database/               # SQLite 初始化与建表
 │   ├── middleware/             # JWT 鉴权 / multer 上传 / 统一错误处理
@@ -89,6 +90,8 @@
 └── vue.config.js               # 开发代理（8080 → 3001）
 ```
 
+> 前后端是两个独立的 npm 包：根 `package.json` 只含前端构建依赖，`server/package.json` 只含后端运行时依赖，各自有 `package-lock.json`。
+
 ## 🚀 快速开始
 
 ### 环境要求
@@ -100,10 +103,12 @@
 ### 步骤
 
 ```bash
-# 1. 克隆并安装依赖
+# 1. 克隆并安装依赖（前后端分开装）
 git clone https://github.com/<your-name>/3dprint.git
 cd 3dprint
-npm install
+npm install                  # 前端构建依赖
+npm --prefix server install  # 后端运行时依赖
+# 也可以用一条命令：npm run install:all
 
 # 2. 安装 Python 依赖（缩略图生成）
 pip install numpy trimesh matplotlib
@@ -113,13 +118,26 @@ cp server/.env.example server/.env
 # 编辑 server/.env，至少修改 JWT_SECRET（可用 openssl rand -hex 32 生成）
 
 # 4. 启动后端 API（http://localhost:3001）
-npm run server
+npm run server               # 等价于 cd server && npm run dev（--watch 热重载）
 
 # 5. 启动前端开发服务（另开终端，http://localhost:8080，已配置 /api 代理）
 npm run serve
 ```
 
 首次启动会自动创建 SQLite 数据库与表结构；上传模型后自动调用 Python 脚本补生成缩略图。
+
+### 常用命令
+
+| 命令 | 说明 |
+|---|---|
+| `npm run install:all` | 一次性安装前后端依赖 |
+| `npm run serve` | 前端开发服务（8080，含 `/api` 代理） |
+| `npm run build` | 构建前端到 `dist/` |
+| `npm run lint` | 前端代码检查 |
+| `npm run server` | 后端开发模式（`node --watch`，改代码自动重启） |
+| `npm run server:start` | 后端生产模式启动 |
+
+后端目录内也可直接执行 `npm start`（生产）和 `npm run dev`（热重载）。
 
 ## ⚙️ 环境变量
 
@@ -143,12 +161,14 @@ npm run serve
 # 构建前端（输出到 dist/，由 Express 托管，前后端同源单端口）
 npm run build
 
-# Linux / macOS
-npm run start
+# 只安装后端运行时依赖（跳过 devDependencies）
+npm --prefix server install --omit=dev
 
-# Windows（CMD）
-npm run start:win
+# 启动（等价于 cd server && npm start）
+npm run server:start
 ```
+
+> **环境变量不再写在 npm 脚本里**：`NODE_ENV` 由 `server/.env` 控制（`NODE_ENV=production` 时若缺少 `JWT_SECRET` 会拒绝启动），因此无需再区分 `start` / `start:win`，Windows 和 Linux 命令完全一致。
 
 使用 pm2 常驻（推荐）：
 
